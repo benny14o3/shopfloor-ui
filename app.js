@@ -38,3 +38,29 @@ console.log("API Fehler:", err)
 }
 
 loadArticles()
+
+function loadMachines(){
+
+const machines = [
+{name:"Presse 1",status:"🟢 Produktion"},
+{name:"Presse 2",status:"🟡 Rüsten"},
+{name:"Presse 3",status:"🔴 Störung"}
+]
+
+const container = document.getElementById("machines")
+
+machines.forEach(m => {
+
+const div = document.createElement("div")
+
+div.innerHTML = `
+<b>${m.name}</b> – ${m.status}
+`
+
+container.appendChild(div)
+
+})
+
+}
+
+loadMachines()
