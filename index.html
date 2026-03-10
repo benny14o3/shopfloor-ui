@@ -3,48 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <title>Shopfloor Dashboard</title>
+
 <link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+window.API_URL = "https://shopfloor-backend.onrender.com";
+</script>
+
 </head>
 
 <body>
 
 <header>
-<h1>Shopfloor Dashboard</h1>
+
+<h1>SHOPFLOOR STATUS</h1>
+
 </header>
 
-<section class="machines-section">
-<h2>Maschinenstatus</h2>
 <div id="machines" class="machines-grid"></div>
-</section>
-
-<section class="production-section">
-<h2>Aktive Produktion</h2>
-<table id="production-table">
-<thead>
-<tr>
-<th>Maschine</th>
-<th>Artikel</th>
-<th>Start</th>
-<th>Stück</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
-</section>
-
-<section class="articles-section">
-<h2>Artikel</h2>
-<input id="articleSearch" placeholder="Artikelnummer eingeben">
-<button onclick="loadArticle()">Suchen</button>
-
-<div id="articleInfo"></div>
-</section>
-
-<section class="spc-section">
-<h2>SPC Diagramm</h2>
-<canvas id="spcChart"></canvas>
-</section>
 
 <script src="app.js"></script>
 

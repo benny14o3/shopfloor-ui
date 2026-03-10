@@ -1,64 +1,78 @@
 body {
-font-family: Arial;
-background:#f4f6f8;
+
+background:#0f172a;
+font-family:Arial;
 margin:0;
-padding:20px;
+color:white;
+
 }
 
 header {
-margin-bottom:30px;
-}
 
-h1 {
-margin:0;
-}
+text-align:center;
+padding:30px;
+font-size:28px;
 
-section {
-background:white;
-padding:20px;
-margin-bottom:20px;
-border-radius:10px;
-box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 
 .machines-grid {
+
 display:grid;
-grid-template-columns: repeat(auto-fill,minmax(200px,1fr));
-gap:15px;
+
+grid-template-columns: repeat(auto-fit,minmax(300px,1fr));
+
+gap:25px;
+
+padding:40px;
+
 }
 
 .machine-card {
-padding:20px;
-border-radius:8px;
-color:white;
+
+padding:40px;
+
+border-radius:12px;
+
+font-size:24px;
+
+text-align:center;
+
 font-weight:bold;
+
 }
 
 .running {
-background:#2ecc71;
+
+background:#16a34a;
+
 }
 
 .stopped {
-background:#e74c3c;
+
+background:#dc2626;
+
 }
 
 .setup {
-background:#f1c40f;
+
+background:#facc15;
+
 color:black;
+
 }
 
-table {
-width:100%;
-border-collapse:collapse;
+.machine-name {
+
+font-size:34px;
+
+margin-bottom:15px;
+
 }
 
-th,td {
-padding:10px;
-border-bottom:1px solid #ddd;
-text-align:left;
-}
+.machine-info {
 
-input {
-padding:8px;
-margin-right:10px;
+font-size:20px;
+
+margin-top:10px;
+
 }
