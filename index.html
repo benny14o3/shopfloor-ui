@@ -1,29 +1,50 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Formteile Fritsch Shopfloor</title>
-
+<title>Shopfloor Dashboard</title>
 <link rel="stylesheet" href="style.css">
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 </head>
 
 <body>
 
+<header>
 <h1>Shopfloor Dashboard</h1>
+</header>
 
+<section class="machines-section">
 <h2>Maschinenstatus</h2>
-<div id="machines"></div>
+<div id="machines" class="machines-grid"></div>
+</section>
 
+<section class="production-section">
+<h2>Aktive Produktion</h2>
+<table id="production-table">
+<thead>
+<tr>
+<th>Maschine</th>
+<th>Artikel</th>
+<th>Start</th>
+<th>Stück</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</section>
+
+<section class="articles-section">
 <h2>Artikel</h2>
-<div id="articles"></div>
+<input id="articleSearch" placeholder="Artikelnummer eingeben">
+<button onclick="loadArticle()">Suchen</button>
 
-<div class="card">
+<div id="articleInfo"></div>
+</section>
+
+<section class="spc-section">
 <h2>SPC Diagramm</h2>
 <canvas id="spcChart"></canvas>
-</div>
+</section>
 
 <script src="app.js"></script>
 

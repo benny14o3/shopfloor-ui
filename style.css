@@ -1,39 +1,64 @@
-body{
+body {
 font-family: Arial;
-background:#f4f4f4;
-padding:30px;
+background:#f4f6f8;
+margin:0;
+padding:20px;
 }
 
-.card{
+header {
+margin-bottom:30px;
+}
+
+h1 {
+margin:0;
+}
+
+section {
 background:white;
 padding:20px;
 margin-bottom:20px;
 border-radius:10px;
-box-shadow:0 3px 8px rgba(0,0,0,0.1);
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 
-.green{color:green;}
-.yellow{color:orange;}
-.red{color:red;}
+.machines-grid {
+display:grid;
+grid-template-columns: repeat(auto-fill,minmax(200px,1fr));
+gap:15px;
+}
 
-.machine{
+.machine-card {
 padding:20px;
-margin:10px;
-border-radius:10px;
-font-size:20px;
+border-radius:8px;
+color:white;
 font-weight:bold;
 }
 
-.green{
+.running {
 background:#2ecc71;
-color:white;
 }
 
-.yellow{
-background:#f1c40f;
-}
-
-.red{
+.stopped {
 background:#e74c3c;
-color:white;
+}
+
+.setup {
+background:#f1c40f;
+color:black;
+}
+
+table {
+width:100%;
+border-collapse:collapse;
+}
+
+th,td {
+padding:10px;
+border-bottom:1px solid #ddd;
+text-align:left;
+}
+
+input {
+padding:8px;
+margin-right:10px;
 }
