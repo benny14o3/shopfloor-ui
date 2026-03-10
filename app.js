@@ -2,18 +2,22 @@ const API = "https://shopfloor-backend.onrender.com"
 
 async function loadArticles(){
 
+try{
+
 const res = await fetch(API + "/articles")
 const articles = await res.json()
 
 const container = document.getElementById("articles")
 
+if(!container) return
+
 container.innerHTML=""
 
 articles.forEach(a => {
 
-const card = document.createElement("div")
+const div = document.createElement("div")
 
-card.innerHTML = `
+div.innerHTML = `
 <h3>${a.artikelnummer}</h3>
 <p>${a.bezeichnung}</p>
 <p>Material: ${a.material}</p>
@@ -21,9 +25,15 @@ card.innerHTML = `
 <p>Kavitäten: ${a.kavitaeten}</p>
 `
 
-container.appendChild(card)
+container.appendChild(div)
 
 })
+
+}catch(err){
+
+console.log("API Fehler:", err)
+
+}
 
 }
 
