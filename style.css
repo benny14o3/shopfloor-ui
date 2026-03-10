@@ -76,3 +76,21 @@ font-size:20px;
 margin-top:10px;
 
 }
+
+.progress-bar {
+
+width:100%;
+background:#1e293b;
+height:14px;
+border-radius:8px;
+margin-top:15px;
+
+}
+
+.progress {
+
+height:100%;
+background:#22c55e;
+border-radius:8px;
+
+}
