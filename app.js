@@ -29,6 +29,7 @@ async function loadMachines() {
       card.className = `machine-card ${machine.status}`;
 
       card.innerHTML = `
+
         <div class="machine-name">${machine.machine_id}</div>
 
         <div class="machine-info">Status: ${machine.status}</div>
@@ -54,10 +55,16 @@ async function loadMachines() {
         </div>
 
         <div class="controls">
-          <button onclick="updateStatus('${machine.machine_id}','running')">START</button>
-          <button onclick="updateStatus('${machine.machine_id}','stopped')">STOP</button>
-          <button onclick="updateStatus('${machine.machine_id}','setup')">SETUP</button>
+          <button onclick="updateStatus('${machine.machine_id}','running')">🟢 START</button>
+          <button onclick="updateStatus('${machine.machine_id}','stopped')">🔴 STOP</button>
+          <button onclick="updateStatus('${machine.machine_id}','setup')">🟡 SETUP</button>
         </div>
+
+        <div class="controls">
+          <button onclick="startProduction('${machine.machine_id}')">▶️ JOB START</button>
+          <button onclick="stopProduction('${machine.machine_id}')">⏹ JOB STOP</button>
+        </div>
+
       `;
 
       container.appendChild(card);
@@ -68,6 +75,8 @@ async function loadMachines() {
   }
 }
 
+
+// STATUS UPDATE
 async function updateStatus(machine_id, status) {
   try {
     await fetch(`${API}/machines/status`, {
@@ -75,13 +84,9 @@ async function updateStatus(machine_id, status) {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        machine_id,
-        status
-      })
+      body: JSON.stringify({ machine_id, status })
     });
 
-    // direkt neu laden
     loadMachines();
 
   } catch (err) {
@@ -89,46 +94,63 @@ async function updateStatus(machine_id, status) {
   }
 }
 
-// initial laden
-loadMachines();
 
-// alle 3 Sekunden aktualisieren
-setInterval(loadMachines, 3000);
-
+// PRODUKTION START
 async function startProduction(machine_id) {
 
   const article = prompt("Artikelnummer eingeben:");
 
   if (!article) return;
 
-  await fetch(`${API}/production/start`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      machine_id,
-      article
-    })
-  });
+  try {
+    await fetch(`${API}/production/start`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        machine_id,
+        article
+      })
+    });
 
-  loadMachines();
+    loadMachines();
+
+  } catch (err) {
+    console.error("Fehler beim Start:", err);
+  }
 }
 
+
+// PRODUKTION STOP
 async function stopProduction(machine_id) {
 
   const quantity = prompt("Stückzahl eingeben:");
 
-  await fetch(`${API}/production/stop`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      machine_id,
-      quantity: parseInt(quantity || 0)
-    })
-  });
+  if (!quantity) return;
 
-  loadMachines();
+  try {
+    await fetch(`${API}/production/stop`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        machine_id,
+        quantity: parseInt(quantity)
+      })
+    });
+
+    loadMachines();
+
+  } catch (err) {
+    console.error("Fehler beim Stop:", err);
+  }
 }
+
+
+// INITIAL LOAD
+loadMachines();
+
+// AUTO REFRESH
+setInterval(loadMachines, 3000);
