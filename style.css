@@ -94,3 +94,20 @@ background:#22c55e;
 border-radius:8px;
 
 }
+
+.controls {
+  margin-top: 15px;
+}
+
+.controls button {
+  margin: 5px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.controls button:hover {
+  opacity: 0.8;
+}
