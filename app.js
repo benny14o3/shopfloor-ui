@@ -94,3 +94,41 @@ loadMachines();
 
 // alle 3 Sekunden aktualisieren
 setInterval(loadMachines, 3000);
+
+async function startProduction(machine_id) {
+
+  const article = prompt("Artikelnummer eingeben:");
+
+  if (!article) return;
+
+  await fetch(`${API}/production/start`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      machine_id,
+      article
+    })
+  });
+
+  loadMachines();
+}
+
+async function stopProduction(machine_id) {
+
+  const quantity = prompt("Stückzahl eingeben:");
+
+  await fetch(`${API}/production/stop`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      machine_id,
+      quantity: parseInt(quantity || 0)
+    })
+  });
+
+  loadMachines();
+}

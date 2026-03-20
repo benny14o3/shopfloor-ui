@@ -111,3 +111,16 @@ border-radius:8px;
 .controls button:hover {
   opacity: 0.8;
 }
+
+.controls button {
+  margin: 5px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.controls button:hover {
+  opacity: 0.8;
+}
