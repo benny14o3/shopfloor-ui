@@ -39,16 +39,15 @@ async function loadMachines() {
         </div>
 
         <div class="machine-info">
-          Stück: ${machine.produced || 0} / ${machine.target || "-"}
-        </div>
-
-        <div class="machine-info">
-          Cycle: ${machine.cycle_time || "-"} s
-        </div>
-
-        <div class="machine-info">
           Output: ${piecesPerMin} pcs/min
         </div>
+	<div class="machine-info">
+	FA: ${machine.fa || "-"}
+	</div>
+
+	<div class="machine-info">
+	FA Menge: ${machine.fa_target || "-"}
+	</div>
 
         <div class="progress-bar">
           <div class="progress" style="width:${progress}%"></div>
@@ -96,31 +95,29 @@ async function updateStatus(machine_id, status) {
 
 
 // PRODUKTION START
-async function startProduction(machine_id) {
+async function startProduction(machine_id){
 
-  const article = prompt("Artikelnummer eingeben:");
-
+  const article = prompt("Artikelnummer:");
   if (!article) return;
 
-  try {
-    await fetch(`${API}/production/start`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        machine_id,
-        article
-      })
-    });
+  const fa = prompt("Fertigungsauftrag (FA):");
+  const fa_target = prompt("FA Menge:");
 
-    loadMachines();
+  await fetch(`${API}/production/start`, {
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body: JSON.stringify({
+      machine_id,
+      article,
+      fa,
+      fa_target: parseInt(fa_target || 0)
+    })
+  });
 
-  } catch (err) {
-    console.error("Fehler beim Start:", err);
-  }
+  loadMachines();
 }
-
 
 // PRODUKTION STOP
 async function stopProduction(machine_id) {
