@@ -116,14 +116,13 @@ function closeModal(id) {
 async function loadMachines() {
   try {
     const res = await fetch(`${API}/machines`);
-    const machines = await res.json();
+    const machines = (await res.json()).sort((a, b) => a.machine_id.localeCompare(b.machine_id));
     if (!Array.isArray(machines)) return;
 
     const container = document.getElementById("machines");
     container.innerHTML = "";
 
     machines.forEach(m => {
-      const ppm = m.cycle_time ? (60 / m.cycle_time).toFixed(1) : "—";
       const progress = m.fa_target ? Math.min(100, Math.round((m.produced / m.fa_target) * 100)) : 0;
       const statusLabels = { running: "LÄUFT", stopped: "GESTOPPT", setup: "RÜSTEN" };
 
@@ -140,21 +139,21 @@ async function loadMachines() {
             <div class="meta-value">${m.article || "—"}</div>
           </div>
           <div class="meta-item">
-            <div class="meta-label">OUTPUT</div>
-            <div class="meta-value">${ppm} pcs/min</div>
-          </div>
-          <div class="meta-item">
-            <div class="meta-label">FA</div>
+            <div class="meta-label">FA-NR.</div>
             <div class="meta-value">${m.fa || "—"}</div>
           </div>
           <div class="meta-item">
-            <div class="meta-label">FORTSCHRITT</div>
+            <div class="meta-label">CHARGE</div>
+            <div class="meta-value">${m.charge || "—"}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">MENGE</div>
             <div class="meta-value">${m.produced || 0} / ${m.fa_target || "—"}</div>
           </div>
         </div>
         <div class="progress-container">
           <div class="progress-label">
-            <span>FA Fortschritt</span>
+            <span>Fortschritt</span>
             <span>${progress}%</span>
           </div>
           <div class="progress-bar">
@@ -162,13 +161,12 @@ async function loadMachines() {
           </div>
         </div>
         <div class="machine-controls">
-          <button class="ctrl-btn green" onclick="updateStatus('${m.machine_id}','running')">▶ START</button>
-          <button class="ctrl-btn red" onclick="updateStatus('${m.machine_id}','stopped')">■ STOP</button>
           <button class="ctrl-btn yellow" onclick="updateStatus('${m.machine_id}','setup')">◆ RÜSTEN</button>
         </div>
         <div class="job-controls">
-          <button class="job-btn start" onclick="startProduction('${m.machine_id}')">▶ JOB START</button>
-          <button class="job-btn" onclick="stopProduction('${m.machine_id}')">⏹ JOB STOP</button>
+          <button class="job-btn start" onclick="startProduction('${m.machine_id}')">▶ Produktion Start</button>
+          <button class="job-btn stop" onclick="stopProduction('${m.machine_id}')">⏹ Produktion Ende</button>
+          <button class="job-btn charge" onclick="openChargeModal('${m.machine_id}')">📦 Charge</button>
         </div>
       `;
       container.appendChild(card);
@@ -190,13 +188,19 @@ async function updateStatus(machine_id, status) {
 async function startProduction(machine_id) {
   const article = prompt("Artikelnummer:");
   if (!article) return;
-  const fa = prompt("Fertigungsauftrag (FA):");
+  const fa = prompt("Fertigungsauftrag (FA-Nr.):");
   const fa_target = prompt("Soll-Menge:");
 
   await fetch(`${API}/production/start`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ machine_id, article, fa, fa_target: parseInt(fa_target || 0) })
+  });
+  // Automatisch auf RUNNING setzen
+  await fetch(`${API}/machines/status`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ machine_id, status: "running" })
   });
   loadMachines();
 }
@@ -210,7 +214,25 @@ async function stopProduction(machine_id) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ machine_id, quantity: parseInt(quantity) })
   });
+  // Automatisch auf STOPPED setzen
+  await fetch(`${API}/machines/status`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ machine_id, status: "stopped" })
+  });
   loadMachines();
+}
+
+// Chargen-Modal
+function openChargeModal(machine_id) {
+  const charge = prompt("Chargen-Nr. eingeben:");
+  if (!charge) return;
+  // Speichern via machines/status mit charge-Feld
+  fetch(`${API}/machines/status`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ machine_id, charge })
+  }).then(() => loadMachines());
 }
 
 // ─── SPC ───────────────────────────────────

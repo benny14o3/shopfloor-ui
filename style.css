@@ -446,7 +446,7 @@ body {
 
 .job-controls {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 6px;
 }
 
@@ -463,8 +463,12 @@ body {
 }
 
 .job-btn:hover { color: var(--text-primary); border-color: var(--border-focus); }
-.job-btn.start { border-color: rgba(79,124,255,0.3); color: var(--accent); }
-.job-btn.start:hover { background: var(--accent-dim); }
+.job-btn.start { border-color: rgba(34,201,122,0.3); color: var(--green); }
+.job-btn.start:hover { background: var(--green-dim); }
+.job-btn.stop { border-color: rgba(240,69,69,0.3); color: var(--red); }
+.job-btn.stop:hover { background: var(--red-dim); }
+.job-btn.charge { border-color: rgba(245,200,66,0.3); color: var(--yellow); }
+.job-btn.charge:hover { background: var(--yellow-dim); }
 
 /* ── SPC LAYOUT ── */
 .spc-layout {
