@@ -557,6 +557,298 @@ document.addEventListener("keydown", e => {
   }
 });
 
+// ─── FEHLERSAMMELKARTE ─────────────────────
+
+const FEHLERARTEN = [
+  { key: "luft_fliess",          label: "Luft-/Fließfehler",       code: "a" },
+  { key: "wkzg_verschmutzung",   label: "Wkzg.-Verschmutzung",     code: "b" },
+  { key: "blasen",               label: "Blasen",                  code: "c" },
+  { key: "material_fehlt",       label: "Material fehlt",          code: "d" },
+  { key: "zusatzteil_feder",     label: "Zusatzteil/Feder",        code: "e" },
+  { key: "dichtkantenfehler",    label: "Dichtkantenfehler",       code: "f" },
+  { key: "stechfehler",          label: "Stechfehler",             code: "g" },
+  { key: "doppelschnitt",        label: "Doppelschnitt",           code: "h" },
+  { key: "fremdkoerper_stippen", label: "Fremdkörper/Stippen",     code: "i" },
+  { key: "werkzeugfehler",       label: "Werkzeugfehler",          code: "j" },
+  { key: "abfall",               label: "Abfall",                  code: "k" },
+  { key: "platzer",              label: "Platzer",                 code: "l" },
+  { key: "blech_nio",            label: "Blech n.i.O.",            code: "m" },
+  { key: "rohling",              label: "Rohling",                 code: "n" },
+  { key: "sonstige",             label: "Sonstige",                code: "—" },
+];
+
+let fskCounts = {};
+
+function initFskPage() {
+  // Set today's date
+  document.getElementById("fsk-datum").value = new Date().toISOString().split("T")[0];
+
+  // Reset counts
+  fskCounts = {};
+  FEHLERARTEN.forEach(f => fskCounts[f.key] = 0);
+
+  // Build fehler rows
+  const list = document.getElementById("fsk-fehler-list");
+  list.innerHTML = FEHLERARTEN.map(f => `
+    <div class="fsk-fehler-row" id="fsk-row-${f.key}">
+      <div class="fsk-fehler-name">
+        <span style="color:var(--text-muted);margin-right:6px">${f.code}</span>${f.label}
+      </div>
+      <div class="fsk-counter">
+        <button class="fsk-count-btn minus" onclick="fskChange('${f.key}', -1)">−</button>
+        <span class="fsk-count-val" id="fsk-val-${f.key}">0</span>
+        <button class="fsk-count-btn plus" onclick="fskChange('${f.key}', +1)">+</button>
+      </div>
+      <div class="fsk-tally" id="fsk-tally-${f.key}"></div>
+    </div>
+  `).join("");
+
+  // Load articles for selector
+  loadFskArticles();
+  loadFskHistory();
+}
+
+function fskChange(key, delta) {
+  fskCounts[key] = Math.max(0, (fskCounts[key] || 0) + delta);
+  const val = fskCounts[key];
+
+  const valEl = document.getElementById(`fsk-val-${key}`);
+  valEl.textContent = val;
+  valEl.className = `fsk-count-val${val > 0 ? " nonzero" : ""}`;
+
+  const row = document.getElementById(`fsk-row-${key}`);
+  row.className = `fsk-fehler-row${val > 0 ? " has-value" : ""}`;
+
+  // Tally marks (strichliste style)
+  const tally = document.getElementById(`fsk-tally-${key}`);
+  tally.textContent = val > 0 ? makeTally(val) : "";
+
+  updateFskSummary();
+}
+
+function makeTally(n) {
+  let s = "";
+  for (let i = 0; i < n; i++) {
+    if (i > 0 && i % 5 === 0) s += " ";
+    s += i % 5 === 4 ? "卌" : "丨";
+  }
+  return s.length > 20 ? `(${n})` : s;
+}
+
+function updateFskSummary() {
+  const nio = FEHLERARTEN.reduce((sum, f) => sum + (fskCounts[f.key] || 0), 0);
+  const geprueft = parseInt(document.getElementById("fsk-geprueft").value) || 0;
+  const pct = geprueft > 0 ? (nio / geprueft * 100).toFixed(2) : "0.00";
+
+  document.getElementById("sum-nio").textContent = nio;
+  document.getElementById("sum-geprueft").textContent = geprueft;
+  document.getElementById("sum-pct").textContent = `${pct} %`;
+}
+
+async function loadFskArticles() {
+  try {
+    const res = await fetch(`${API}/articles`);
+    const articles = await res.json();
+
+    const sel = document.getElementById("fsk-article");
+    const filterSel = document.getElementById("fsk-filter-artikel");
+
+    [sel, filterSel].forEach(s => {
+      const first = s.options[0];
+      s.innerHTML = "";
+      s.appendChild(first);
+    });
+
+    articles.forEach(a => {
+      const label = `${a.artikelnummer} · ${a.bezeichnung || ""}`;
+      [sel, filterSel].forEach(s => {
+        const opt = document.createElement("option");
+        opt.value = a.artikelnummer;
+        opt.textContent = label;
+        s.appendChild(opt);
+      });
+    });
+  } catch(e) { console.error(e); }
+}
+
+function onFskArticleChange() {
+  // Could pre-fill auftrag info later
+}
+
+async function saveFsk() {
+  const geprueft = parseInt(document.getElementById("fsk-geprueft").value) || 0;
+  const artikelnummer = document.getElementById("fsk-article").value;
+
+  if (!artikelnummer) { alert("Bitte Artikel wählen."); return; }
+  if (!geprueft) { alert("Bitte Prüflosgröße eingeben."); return; }
+
+  const payload = {
+    artikelnummer,
+    auftrag_nr: document.getElementById("fsk-auftrag").value,
+    chargen_nr: document.getElementById("fsk-charge").value,
+    maschine: document.getElementById("fsk-maschine").value,
+    operator: document.getElementById("fsk-operator").value,
+    schicht: document.getElementById("fsk-schicht").value,
+    datum: document.getElementById("fsk-datum").value,
+    geprueft,
+    nacharbeit: parseInt(document.getElementById("fsk-nacharbeit").value) || 0,
+    anfahrausschuss: parseInt(document.getElementById("fsk-anfahrausschuss").value) || 0,
+    notiz: document.getElementById("fsk-notiz").value,
+    ...fskCounts,
+  };
+
+  try {
+    const res = await fetch(`${API}/defects`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.id) {
+      // Reset counts
+      FEHLERARTEN.forEach(f => {
+        fskCounts[f.key] = 0;
+        document.getElementById(`fsk-val-${f.key}`).textContent = "0";
+        document.getElementById(`fsk-val-${f.key}`).className = "fsk-count-val";
+        document.getElementById(`fsk-row-${f.key}`).className = "fsk-fehler-row";
+        document.getElementById(`fsk-tally-${f.key}`).textContent = "";
+      });
+      document.getElementById("fsk-geprueft").value = "";
+      document.getElementById("fsk-notiz").value = "";
+      updateFskSummary();
+      loadFskHistory();
+      loadFskPareto();
+    }
+  } catch(e) { console.error("Speichern fehlgeschlagen:", e); }
+}
+
+async function loadFskHistory() {
+  const filter = document.getElementById("fsk-filter-artikel")?.value || "";
+  try {
+    const url = filter ? `${API}/defects?artikelnummer=${encodeURIComponent(filter)}` : `${API}/defects`;
+    const res = await fetch(url);
+    const entries = await res.json();
+
+    const container = document.getElementById("fsk-history");
+    if (!entries.length) {
+      container.innerHTML = '<div style="color:var(--text-muted);font-family:var(--mono);font-size:12px;padding:10px">Noch keine Einträge</div>';
+      return;
+    }
+
+    container.innerHTML = entries.slice(0, 20).map(e => {
+      const pct = e.anteil_nio;
+      const badgeClass = pct === 0 ? "fsk-nio-ok" : pct < 1 ? "fsk-nio-warn" : "fsk-nio-bad";
+      const pills = Object.entries(e.fehler)
+        .filter(([, v]) => v > 0)
+        .map(([k, v]) => `<span class="fsk-pill">${k}: ${v}</span>`)
+        .join("");
+
+      return `
+        <div class="fsk-history-row">
+          <div class="fsk-history-top">
+            <span class="fsk-history-title">${e.artikelnummer || "—"} · ${e.datum || "—"} · ${e.schicht || "—"}</span>
+            <span class="fsk-nio-badge ${badgeClass}">${e.nio_gesamt} NiO · ${pct}%</span>
+          </div>
+          <div class="fsk-history-meta" style="margin-bottom:6px">
+            ${e.maschine || "—"} · ${e.operator || "—"} · ${e.geprueft} geprüft
+          </div>
+          <div class="fsk-history-pills">${pills || '<span style="color:var(--text-muted);font-size:10px;font-family:var(--mono)">Keine Fehler erfasst</span>'}</div>
+        </div>`;
+    }).join("");
+
+    loadFskPareto(entries);
+  } catch(e) { console.error(e); }
+}
+
+let paretoChart = null;
+function loadFskPareto(entries) {
+  if (!entries) return;
+
+  // Aggregate all fehler counts
+  const totals = {};
+  FEHLERARTEN.forEach(f => totals[f.label] = 0);
+  entries.forEach(e => {
+    FEHLERARTEN.forEach(f => {
+      totals[f.label] += (e.fehler[f.label] || 0);
+    });
+  });
+
+  // Sort descending
+  const sorted = Object.entries(totals)
+    .filter(([, v]) => v > 0)
+    .sort((a, b) => b[1] - a[1]);
+
+  if (!sorted.length) return;
+
+  const labels = sorted.map(([k]) => k);
+  const values = sorted.map(([, v]) => v);
+  const total = values.reduce((a, b) => a + b, 0);
+
+  // Cumulative %
+  let cum = 0;
+  const cumPct = values.map(v => {
+    cum += v;
+    return parseFloat((cum / total * 100).toFixed(1));
+  });
+
+  const ctx = document.getElementById("fsk-pareto").getContext("2d");
+  if (paretoChart) paretoChart.destroy();
+
+  paretoChart = new Chart(ctx, {
+    data: {
+      labels,
+      datasets: [
+        {
+          type: "bar",
+          label: "Anzahl",
+          data: values,
+          backgroundColor: "rgba(79,124,255,0.6)",
+          borderColor: "#4f7cff",
+          borderWidth: 1,
+          borderRadius: 3,
+          yAxisID: "y",
+        },
+        {
+          type: "line",
+          label: "Kumuliert %",
+          data: cumPct,
+          borderColor: "#f5c842",
+          borderWidth: 2,
+          pointRadius: 3,
+          pointBackgroundColor: "#f5c842",
+          tension: 0.1,
+          yAxisID: "y2",
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { labels: { color: "#7a8499", font: { family: "IBM Plex Mono", size: 10 }, boxWidth: 16 } }
+      },
+      scales: {
+        x: {
+          grid: { color: "#1f2535" },
+          ticks: { color: "#3d4558", font: { family: "IBM Plex Mono", size: 9 }, maxRotation: 35 }
+        },
+        y: {
+          grid: { color: "#1f2535" },
+          ticks: { color: "#7a8499", font: { family: "IBM Plex Mono", size: 10 } },
+          beginAtZero: true,
+        },
+        y2: {
+          position: "right",
+          grid: { drawOnChartArea: false },
+          ticks: { color: "#f5c842", font: { family: "IBM Plex Mono", size: 10 }, callback: v => `${v}%` },
+          min: 0, max: 100,
+        }
+      }
+    }
+  });
+}
+
+// ─── INIT ──────────────────────────────────
 
 navigate("dashboard");
 
@@ -589,7 +881,7 @@ const FEHLERORTE = [
 ];
 
 let fskChecks = { feder: null, bindung: null };
-let fskKarten = [];
+let fskKarten = JSON.parse(localStorage.getItem("fsk_karten") || "[]");
 let paretoChart = null, fehlerortChart = null, nioTrendChart = null;
 
 function initFehlersammelkarte() {
@@ -702,100 +994,61 @@ function fskReset() {
   fskUpdateSumme();
 }
 
-async function fskSpeichern() {
+function fskSpeichern() {
   const artikel = document.getElementById("fsk-artikel").value;
   const geprueft = parseInt(document.getElementById("fsk-geprueft").value) || 0;
 
   if (!artikel) { alert("Bitte Artikel-Nr. eingeben."); return; }
   if (geprueft === 0) { alert("Bitte Geprüfte Teile eingeben."); return; }
 
-  // Collect fehler counts mapped to API field names
-  const FEHLER_MAP = {
-    luft:       "luft_fliess",
-    wkzg:       "wkzg_verschmutzung",
-    blasen:     "blasen",
-    material:   "material_fehlt",
-    feder:      "zusatzteil_feder",
-    dichtkante: "dichtkantenfehler",
-    stech:      "stechfehler",
-    doppel:     "doppelschnitt",
-    fremd:      "fremdkoerper_stippen",
-    wkzgfehler: "werkzeugfehler",
-    abfall:     "abfall",
-    platzer:    "platzer",
-    blech:      "blech_nio",
-    rohling:    "rohling",
-    sonstige:   "sonstige",
-  };
+  const fehler = {};
+  const fehlerOrte = {};
+  let nioGesamt = 0;
 
-  const payload = {
-    artikelnummer: artikel,
+  FEHLERARTEN.forEach(f => {
+    const cnt = parseInt(document.getElementById(`cnt-${f.id}`)?.textContent) || 0;
+    if (cnt > 0) {
+      fehler[f.name] = cnt;
+      fehlerOrte[f.name] = document.getElementById(`ort-${f.id}`)?.value || "";
+      nioGesamt += cnt;
+    }
+  });
+
+  const karte = {
+    id: Date.now(),
+    datum: document.getElementById("fsk-datum").value,
+    schicht: document.getElementById("fsk-schicht").value,
+    artikel: artikel,
     typ: document.getElementById("fsk-typ").value,
     material: document.getElementById("fsk-material").value,
-    auftrag_nr: document.getElementById("fsk-auftrag").value,
-    chargen_nr: document.getElementById("fsk-charge").value,
+    auftrag: document.getElementById("fsk-auftrag").value,
+    charge: document.getElementById("fsk-charge").value,
     maschine: document.getElementById("fsk-maschine").value,
     operator: document.getElementById("fsk-operator").value,
-    schicht: document.getElementById("fsk-schicht").value,
-    datum: document.getElementById("fsk-datum").value,
     geprueft,
-    nacharbeit: parseInt(document.getElementById("fsk-nacharbeit").value) || 0,
-    anfahrausschuss: parseInt(document.getElementById("fsk-anfahrausschuss").value) || 0,
+    nioGesamt,
+    nioPct: geprueft > 0 ? ((nioGesamt / geprueft) * 100).toFixed(2) : 0,
+    fehler,
+    fehlerOrte,
     bindung: document.getElementById("fsk-bindung").value,
+    nacharbeit: document.getElementById("fsk-nacharbeit").value,
+    anfahrausschuss: document.getElementById("fsk-anfahrausschuss").value,
     freigabe: document.getElementById("fsk-freigabe").value,
     notiz: document.getElementById("fsk-notiz").value,
     federkontrolle: fskChecks.feder,
     bindungspruefung: fskChecks.bindung,
   };
 
-  // Add fehler counts + collect fehlerorte
-  const fehlerorteMap = {};
-  let nioGesamt = 0;
-  FEHLERARTEN.forEach(f => {
-    const cnt = parseInt(document.getElementById(`cnt-${f.id}`)?.textContent) || 0;
-    payload[FEHLER_MAP[f.id]] = cnt;
-    nioGesamt += cnt;
-    const ort = document.getElementById(`ort-${f.id}`)?.value;
-    if (cnt > 0 && ort) fehlerorteMap[f.name] = ort;
-  });
+  fskKarten.unshift(karte);
+  localStorage.setItem("fsk_karten", JSON.stringify(fskKarten));
 
-  payload.fehlerorte = JSON.stringify(fehlerorteMap);
-
-  try {
-    const btn = document.querySelector(".fsk-actions .btn-primary");
-    btn.textContent = "Speichern...";
-    btn.disabled = true;
-
-    const res = await fetch(`${API}/defects`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-
-    btn.textContent = "💾 Karte speichern";
-    btn.disabled = false;
-
-    const pct = geprueft > 0 ? ((nioGesamt / geprueft) * 100).toFixed(2) : 0;
-    fskReset();
-    alert(`✓ Karte gespeichert! (ID: ${data.id})\n${nioGesamt} NiO von ${geprueft} Teilen (${pct} %)`);
-
-  } catch (err) {
-    console.error("FSK speichern fehlgeschlagen:", err);
-    alert("Fehler beim Speichern. Verbindung prüfen.");
-    document.querySelector(".fsk-actions .btn-primary").textContent = "💾 Karte speichern";
-    document.querySelector(".fsk-actions .btn-primary").disabled = false;
-  }
+  fskReset();
+  alert(`✓ Karte gespeichert!\n${nioGesamt} NiO von ${geprueft} geprüften Teilen (${karte.nioPct} %)`);
 }
 
 // ─── AUSWERTUNG ───────────────────────────
 
-async function renderFskAuswertung() {
-  // Load from API
-  try {
-    const res = await fetch(`${API}/defects`);
-    fskKarten = await res.json();
-  } catch(e) { console.error(e); }
+function renderFskAuswertung() {
   if (fskKarten.length === 0) return;
 
   // Aggregate fehler counts
@@ -805,18 +1058,13 @@ async function renderFskAuswertung() {
   const trendData = [];
 
   fskKarten.slice().reverse().forEach(k => {
-    const pct = k.anteil_nio ?? k.nioPct ?? 0;
-    trendLabels.push(`${k.datum || ""} ${k.schicht || ""}`);
-    trendData.push(parseFloat(pct));
-    // API returns fehler as {name: count} with only non-zero
+    trendLabels.push(`${k.datum} ${k.schicht}`);
+    trendData.push(parseFloat(k.nioPct));
     Object.entries(k.fehler || {}).forEach(([name, cnt]) => {
-      if (cnt > 0) fehlersumme[name] = (fehlersumme[name] || 0) + cnt;
+      fehlersumme[name] = (fehlersumme[name] || 0) + cnt;
     });
-    // Parse fehlerorte JSON string from API
-    let orteObj = {};
-    try { orteObj = JSON.parse(k.fehlerorte || "{}"); } catch(e) {}
-    Object.entries(orteObj).forEach(([name, ort]) => {
-      if (ort) ortsumme[ort] = (ortsumme[ort] || 0) + (k.fehler?.[name] || 0);
+    Object.entries(k.fehlerOrte || {}).forEach(([name, ort]) => {
+      if (ort) ortsumme[ort] = (ortsumme[ort] || 0) + (k.fehler[name] || 0);
     });
   });
 
@@ -934,29 +1182,20 @@ async function renderFskAuswertung() {
 
 // ─── HISTORIE ────────────────────────────
 
-async function renderFskHistorie() {
+function renderFskHistorie() {
   const container = document.getElementById("fsk-historie-list");
-  try {
-    const res = await fetch(`${API}/defects`);
-    fskKarten = await res.json();
-  } catch(e) { console.error(e); }
   if (!fskKarten.length) return;
 
-  container.innerHTML = fskKarten.map(k => {
-    const nio = k.nio_gesamt ?? k.nioGesamt ?? 0;
-    const pct = k.anteil_nio ?? k.nioPct ?? 0;
-    const artikel = k.artikelnummer ?? k.artikel ?? "—";
-    const aktiveFehler = Object.entries(k.fehler || {}).filter(([,v]) => v > 0);
-    return `
+  container.innerHTML = fskKarten.map(k => `
     <div class="fsk-hist-card">
       <div class="fsk-hist-header">
         <div>
-          <span class="fsk-hist-artikel">${artikel}</span>
+          <span class="fsk-hist-artikel">${k.artikel}</span>
           <span class="fsk-hist-typ">${k.typ || ""}</span>
         </div>
         <div class="fsk-hist-meta">
-          <span>${k.datum || "—"}</span>
-          <span class="fsk-badge-schicht">${k.schicht || "—"}</span>
+          <span>${k.datum}</span>
+          <span class="fsk-badge-schicht">${k.schicht}</span>
           <span>${k.maschine || "—"}</span>
           <span>${k.operator || "—"}</span>
         </div>
@@ -967,20 +1206,20 @@ async function renderFskHistorie() {
           <span class="fsk-hist-kpi-label">Geprüft</span>
         </div>
         <div class="fsk-hist-kpi">
-          <span class="fsk-hist-kpi-val" style="color:${nio > 0 ? "var(--red)" : "var(--green)"}">${nio}</span>
+          <span class="fsk-hist-kpi-val" style="color:${k.nioGesamt > 0 ? 'var(--red)' : 'var(--green)'}">${k.nioGesamt}</span>
           <span class="fsk-hist-kpi-label">n.i.O.</span>
         </div>
         <div class="fsk-hist-kpi">
-          <span class="fsk-hist-kpi-val" style="color:${parseFloat(pct) > 5 ? "var(--red)" : "var(--green)"}">${pct} %</span>
+          <span class="fsk-hist-kpi-val" style="color:${parseFloat(k.nioPct) > 5 ? 'var(--red)' : 'var(--green)'}">${k.nioPct} %</span>
           <span class="fsk-hist-kpi-label">Anteil</span>
         </div>
         <div class="fsk-hist-fehler">
-          ${aktiveFehler.map(([name, cnt]) =>
+          ${Object.entries(k.fehler || {}).map(([name, cnt]) =>
             `<span class="fsk-fehler-badge">${name}: ${cnt}</span>`
           ).join("")}
         </div>
       </div>
       ${k.notiz ? `<div class="fsk-hist-notiz">${k.notiz}</div>` : ""}
-    </div>`;
-  }).join("");
+    </div>
+  `).join("");
 }
