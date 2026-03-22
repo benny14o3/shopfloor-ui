@@ -2,27 +2,428 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Shopfloor Dashboard</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shopfloor · Formteile Fritsch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="style.css">
-
-<script>
-window.API_URL = "https://shopfloor-backend.onrender.com";
-</script>
-
+<script>window.API_URL = "https://shopfloor-backend.onrender.com";</script>
 </head>
-
 <body>
 
-<header>
+<!-- SIDEBAR NAV -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">FF</div>
+    <div class="logo-text">
+      <span class="logo-company">Formteile</span>
+      <span class="logo-sub">Fritsch GmbH</span>
+    </div>
+  </div>
 
-<h1>SHOPFLOOR STATUS</h1>
+  <div class="nav-section-label">PRODUKTION</div>
+  <ul class="nav-links">
+    <li><a href="#" class="nav-link active" data-page="dashboard" onclick="navigate('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Maschinenstatus
+    </a></li>
+    <li><a href="#" class="nav-link" data-page="spc" onclick="navigate('spc')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      SPC · Regelkarten
+    </a></li>
+    <li><a href="#" class="nav-link" data-page="fehler" onclick="navigate('fehler')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 22 21 2 21"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Fehlersammelkarte
+    </a></li>
+    <li><a href="#" class="nav-link" data-page="pruefplan" onclick="navigate('pruefplan')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg>
+      Prüfplan
+    </a></li>
+    <li><a href="#" class="nav-link" data-page="chargen" onclick="navigate('chargen')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+      Chargenprotokoll
+    </a></li>
+  </ul>
 
-</header>
+  <div class="nav-section-label">VERWALTUNG</div>
+  <ul class="nav-links">
+    <li><a href="#" class="nav-link" data-page="artikel" onclick="navigate('artikel')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      Artikelstamm
+    </a></li>
+    <li><a href="#" class="nav-link" data-page="settings" onclick="navigate('settings')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 1 0 4.93 19.07 10 10 0 0 0 19.07 4.93z"/></svg>
+      Einstellungen
+    </a></li>
+  </ul>
 
-<div id="machines" class="machines-grid"></div>
+  <div class="sidebar-user">
+    <div class="user-avatar">OP</div>
+    <div class="user-info">
+      <span class="user-name" id="current-user">Nicht angemeldet</span>
+      <span class="user-role" id="current-role">—</span>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main class="main-content">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="page-title" id="page-title">Maschinenstatus</div>
+      <div class="breadcrumb" id="breadcrumb">Produktion</div>
+    </div>
+    <div class="topbar-right">
+      <div class="live-indicator">
+        <span class="pulse-dot"></span>
+        LIVE
+      </div>
+      <div class="clock" id="clock">--:--:--</div>
+      <button class="btn-icon" onclick="showLoginModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- PAGE VIEWS -->
+  <div class="page-container">
+
+    <!-- DASHBOARD (Maschinen) -->
+    <div id="page-dashboard" class="page active">
+      <div class="machines-grid" id="machines"></div>
+    </div>
+
+    <!-- SPC PAGE -->
+    <div id="page-spc" class="page">
+      <div class="spc-layout">
+        <!-- Selector Panel -->
+        <div class="spc-sidebar">
+          <div class="panel-header">Artikel & Merkmal</div>
+
+          <label class="form-label">Artikel</label>
+          <select class="form-select" id="spc-article-select" onchange="loadSpcProcesses()">
+            <option value="">— Artikel wählen —</option>
+          </select>
+
+          <label class="form-label" style="margin-top:16px">Prozess</label>
+          <select class="form-select" id="spc-process-select" onchange="loadSpcCharacteristics()" disabled>
+            <option value="">— Prozess wählen —</option>
+          </select>
+
+          <label class="form-label" style="margin-top:16px">Prüfmerkmal</label>
+          <select class="form-select" id="spc-char-select" onchange="loadSpcData()" disabled>
+            <option value="">— Merkmal wählen —</option>
+          </select>
+
+          <div id="spc-info-panel" class="spc-info-panel hidden">
+            <div class="spc-info-row">
+              <span>Sollwert</span><span id="spc-sollwert">—</span>
+            </div>
+            <div class="spc-info-row">
+              <span>Tol +</span><span id="spc-tol-plus">—</span>
+            </div>
+            <div class="spc-info-row">
+              <span>Tol −</span><span id="spc-tol-minus">—</span>
+            </div>
+            <div class="spc-info-row">
+              <span>Messmittel</span><span id="spc-messmittel">—</span>
+            </div>
+          </div>
+
+          <button class="btn-primary" style="margin-top:20px; width:100%" onclick="openMeasurementModal()">
+            + Messwert erfassen
+          </button>
+        </div>
+
+        <!-- Charts -->
+        <div class="spc-main">
+          <div id="spc-empty" class="spc-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <p>Artikel, Prozess und Merkmal wählen</p>
+          </div>
+
+          <div id="spc-content" class="hidden">
+            <!-- KPI Row -->
+            <div class="kpi-row">
+              <div class="kpi-card" id="kpi-cpk">
+                <div class="kpi-value">—</div>
+                <div class="kpi-label">Cpk</div>
+              </div>
+              <div class="kpi-card" id="kpi-cp">
+                <div class="kpi-value">—</div>
+                <div class="kpi-label">Cp</div>
+              </div>
+              <div class="kpi-card" id="kpi-mean">
+                <div class="kpi-value">—</div>
+                <div class="kpi-label">Mittelwert x̄</div>
+              </div>
+              <div class="kpi-card" id="kpi-std">
+                <div class="kpi-value">—</div>
+                <div class="kpi-label">Std.abw. σ</div>
+              </div>
+              <div class="kpi-card kpi-status" id="kpi-status">
+                <div class="kpi-value status-badge">—</div>
+                <div class="kpi-label">Prozessstatus</div>
+              </div>
+            </div>
+
+            <!-- X-Chart -->
+            <div class="chart-panel">
+              <div class="chart-panel-header">
+                <span>Einzelwert-Regelkarte (X-Chart)</span>
+                <span class="chart-subtitle" id="chart-n-values">0 Messwerte</span>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="xchart"></canvas>
+              </div>
+            </div>
+
+            <!-- Histogram -->
+            <div class="chart-row">
+              <div class="chart-panel">
+                <div class="chart-panel-header">
+                  <span>Histogramm</span>
+                  <span class="chart-subtitle">Verteilung</span>
+                </div>
+                <div class="chart-wrapper chart-sm">
+                  <canvas id="histogram"></canvas>
+                </div>
+              </div>
+
+              <div class="chart-panel">
+                <div class="chart-panel-header">
+                  <span>Messwerte</span>
+                  <span class="chart-subtitle">Letzte Einträge</span>
+                </div>
+                <div class="measurements-table" id="measurements-table"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FEHLERSAMMELKARTE -->
+    <div id="page-fehler" class="page">
+
+      <!-- Tab Bar -->
+      <div class="fsk-tabs">
+        <button class="fsk-tab active" data-fsk="erfassung" onclick="fskTab('erfassung')">✏ Erfassung</button>
+        <button class="fsk-tab" data-fsk="auswertung" onclick="fskTab('auswertung')">📊 Pareto-Auswertung</button>
+        <button class="fsk-tab" data-fsk="historie" onclick="fskTab('historie')">📋 Historie</button>
+      </div>
+
+      <!-- TAB: ERFASSUNG -->
+      <div id="fsk-erfassung" class="fsk-pane active">
+        <div class="fsk-layout">
+          <div class="fsk-main">
+
+            <div class="fsk-section">
+              <div class="fsk-section-title">Auftragsdaten</div>
+              <div class="fsk-kopf-grid">
+                <div class="fsk-field"><label class="form-label">Artikel-Nr.</label><input class="form-input" id="fsk-artikel" placeholder="z.B. 49748173"></div>
+                <div class="fsk-field"><label class="form-label">Typ / Abmessung</label><input class="form-input" id="fsk-typ" placeholder="z.B. Dichtring DN34"></div>
+                <div class="fsk-field"><label class="form-label">Material</label><input class="form-input" id="fsk-material" placeholder="z.B. 70 EPDM 281"></div>
+                <div class="fsk-field"><label class="form-label">Auftrag-Nr.</label><input class="form-input" id="fsk-auftrag" placeholder="FA-Nummer"></div>
+                <div class="fsk-field"><label class="form-label">Chargen-Nr.</label><input class="form-input" id="fsk-charge" placeholder="Chargennummer"></div>
+                <div class="fsk-field"><label class="form-label">Masch.-Nr.</label><select class="form-select" id="fsk-maschine"><option value="">— wählen —</option><option>MAPLAN GUMMI-01</option><option>MAPLAN-GUMMI-02</option><option>MAPLAN-SILIKON-03</option><option>MAPLAN-SILIKON-04</option></select></div>
+                <div class="fsk-field"><label class="form-label">Operator</label><input class="form-input" id="fsk-operator" placeholder="Name"></div>
+                <div class="fsk-field"><label class="form-label">Schicht</label><select class="form-select" id="fsk-schicht"><option value="Früh">Früh</option><option value="Spät">Spät</option><option value="Nacht">Nacht</option></select></div>
+                <div class="fsk-field"><label class="form-label">Datum</label><input class="form-input" id="fsk-datum" type="date"></div>
+                <div class="fsk-field"><label class="form-label">Geprüfte Teile</label><input class="form-input" id="fsk-geprueft" type="number" placeholder="0" min="0" oninput="fskUpdateSumme()"></div>
+              </div>
+            </div>
+
+            <div class="fsk-section">
+              <div class="fsk-section-title">Fehlerarten · Erfassung</div>
+              <div class="fsk-fehler-table">
+                <div class="fsk-fehler-header">
+                  <span>Fehlerart</span>
+                  <span>Fehlerort</span>
+                  <span style="text-align:center">− / +</span>
+                  <span style="text-align:center">Anzahl</span>
+                </div>
+                <div id="fsk-fehler-rows"></div>
+              </div>
+              <div class="fsk-summe-row">
+                <span>n.i.O. gesamt:</span>
+                <span id="fsk-summe-nio" class="fsk-summe-val">0</span>
+                <span>Anteil n.i.O.:</span>
+                <span id="fsk-summe-pct" class="fsk-summe-val">—</span>
+              </div>
+            </div>
+
+            <div class="fsk-section">
+              <div class="fsk-section-title">Zusatzinformationen</div>
+              <div class="fsk-kopf-grid">
+                <div class="fsk-field fsk-field-wide"><label class="form-label">Bindung (Früh / Spät / Nacht)</label><input class="form-input" id="fsk-bindung" placeholder="z.B. Früh: Max M."></div>
+                <div class="fsk-field"><label class="form-label">Nacharbeit (Stück)</label><input class="form-input" id="fsk-nacharbeit" type="number" placeholder="0"></div>
+                <div class="fsk-field"><label class="form-label">Anfahrausschuss (Stück)</label><input class="form-input" id="fsk-anfahrausschuss" type="number" placeholder="0"></div>
+                <div class="fsk-field fsk-field-wide"><label class="form-label">Auftragsfreigabe erteilt von</label><input class="form-input" id="fsk-freigabe" placeholder="Name / Kürzel"></div>
+                <div class="fsk-field fsk-field-wide"><label class="form-label">Notiz / Ursache</label><input class="form-input" id="fsk-notiz" placeholder="Abweichung, Ursache, Maßnahme..."></div>
+              </div>
+            </div>
+
+            <div class="fsk-check-section">
+              <div class="fsk-check-item"><span>Federkontrolle</span><div class="fsk-check-btns"><button class="fsk-check-btn" id="feder-io" onclick="setCheck('feder','io')">i.O.</button><button class="fsk-check-btn" id="feder-nio" onclick="setCheck('feder','nio')">n.i.O.</button></div></div>
+              <div class="fsk-check-item"><span>Bindungsprüfung</span><div class="fsk-check-btns"><button class="fsk-check-btn" id="bindung-io" onclick="setCheck('bindung','io')">i.O.</button><button class="fsk-check-btn" id="bindung-nio" onclick="setCheck('bindung','nio')">n.i.O.</button></div></div>
+            </div>
+
+            <div class="fsk-actions">
+              <button class="btn-secondary" onclick="fskReset()">Zurücksetzen</button>
+              <button class="btn-primary" onclick="fskSpeichern()">💾 Karte speichern</button>
+            </div>
+          </div>
+
+          <div class="fsk-sidebar-right">
+            <div class="fsk-section">
+              <div class="fsk-section-title">Fehlerort-Schlüssel</div>
+              <div class="fsk-legend">
+                <div class="fsk-legend-col">
+                  <div class="fsk-legend-title">Fehlerort</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">1</span>Dichtkante</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">2</span>Kontaktfläche</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">3</span>Lauffläche</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">4</span>Staublippe</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">5</span>Boden</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">6</span>Außenmantel</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">7</span>Membranfläche</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">8</span>Federhaltebund</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">9</span>Drall</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">10</span>Federrille</div>
+                </div>
+                <div class="fsk-legend-col">
+                  <div class="fsk-legend-title">Fehlermerkmal</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">a</span>Luft-/Fließfehler</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">b</span>Wkzg.-Verschmutzung</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">c</span>Blasen</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">d</span>Material fehlt</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">e</span>Zusatzteil/Feder</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">f</span>Dichtkantenfehler</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">g</span>Stechfehler</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">h</span>Doppelschnitt</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">i</span>Fremdkörper/Stippen</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">j</span>Werkzeugfehler</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">k</span>Abfall</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">l</span>Platzer</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">m</span>Blech n.i.O.</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">n</span>Rohling</div>
+                  <div class="fsk-legend-item"><span class="fsk-code">o</span>Sonstige</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: AUSWERTUNG -->
+      <div id="fsk-auswertung" class="fsk-pane">
+        <div class="fsk-auswertung-layout">
+          <div class="chart-panel">
+            <div class="chart-panel-header"><span>Pareto-Analyse · Fehlerarten</span><span class="chart-subtitle" id="pareto-subtitle">alle gespeicherten Karten</span></div>
+            <div class="chart-wrapper" style="max-height:300px"><canvas id="pareto-chart"></canvas></div>
+          </div>
+          <div class="chart-row">
+            <div class="chart-panel">
+              <div class="chart-panel-header"><span>Fehler nach Fehlerort</span><span class="chart-subtitle">Verteilung</span></div>
+              <div class="chart-wrapper chart-sm"><canvas id="fehlerort-chart"></canvas></div>
+            </div>
+            <div class="chart-panel">
+              <div class="chart-panel-header"><span>NIO-Anteil Verlauf</span><span class="chart-subtitle">% je Karte</span></div>
+              <div class="chart-wrapper chart-sm"><canvas id="nio-trend-chart"></canvas></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: HISTORIE -->
+      <div id="fsk-historie" class="fsk-pane">
+        <div id="fsk-historie-list" class="fsk-historie-list">
+          <div class="spc-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg><p>Noch keine Karten gespeichert</p></div>
+        </div>
+      </div>
+
+    </div>
+        <div id="page-pruefplan" class="page">
+      <div class="coming-soon">
+        <div class="cs-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <h2>Prüfplan & Erinnerungen</h2>
+        <p>In Entwicklung</p>
+      </div>
+    </div>
+    <div id="page-chargen" class="page">
+      <div class="coming-soon">
+        <div class="cs-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <h2>Chargenprotokoll</h2>
+        <p>In Entwicklung</p>
+      </div>
+    </div>
+    <div id="page-artikel" class="page">
+      <div class="coming-soon">
+        <div class="cs-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        </div>
+        <h2>Artikelstamm</h2>
+        <p>In Entwicklung</p>
+      </div>
+    </div>
+    <div id="page-settings" class="page">
+      <div class="coming-soon">
+        <div class="cs-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 1 0 4.93 19.07 10 10 0 0 0 19.07 4.93z"/></svg>
+        </div>
+        <h2>Einstellungen</h2>
+        <p>In Entwicklung</p>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- LOGIN MODAL -->
+<div class="modal-overlay hidden" id="login-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Anmelden</h3>
+      <button class="modal-close" onclick="closeModal('login-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="form-label">PIN</label>
+      <input type="password" class="form-input" id="login-pin" placeholder="••••" maxlength="6" oninput="this.value=this.value.replace(/\D/g,'')">
+      <div class="modal-error hidden" id="login-error">PIN falsch</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="doLogin()">Anmelden</button>
+    </div>
+  </div>
+</div>
+
+<!-- MEASUREMENT MODAL -->
+<div class="modal-overlay hidden" id="measurement-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Messwert erfassen</h3>
+      <button class="modal-close" onclick="closeModal('measurement-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="meas-char-info" class="meas-char-info"></div>
+      <label class="form-label">Messwert</label>
+      <input type="number" class="form-input form-input-large" id="meas-value" placeholder="0.00" step="0.001">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('measurement-modal')">Abbrechen</button>
+      <button class="btn-primary" onclick="saveMeasurement()">Speichern</button>
+    </div>
+  </div>
+</div>
 
 <script src="app.js"></script>
-
 </body>
 </html>
